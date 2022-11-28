@@ -1,0 +1,7 @@
+package {{ .Configuration.Package }}
+
+{{ template "imports" . }}
+
+{{ range .Configuration.ResourceTypes }}
+{{ template "reconciler" . }}
+{{- end }}

@@ -1,0 +1,55 @@
+# Copyright 2022 The Kubermatic Kubernetes Platform contributors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This is the configuration for the built-in reconcilers that ship
+# with this module.
+
+package: reconciling
+boilerplate: hack/boilerplate/boilerplate.go.txt
+resourceTypes:
+  # core/v1
+  - { package: k8s.io/api/core/v1, resourceName: Namespace }
+  - { package: k8s.io/api/core/v1, resourceName: Service }
+  - { package: k8s.io/api/core/v1, resourceName: Secret }
+  - { package: k8s.io/api/core/v1, resourceName: ConfigMap }
+  - { package: k8s.io/api/core/v1, resourceName: ServiceAccount }
+  - { package: k8s.io/api/core/v1, resourceName: Endpoints, resourceNamePlural: Endpoints }
+
+  # discovery/v1
+  - { package: k8s.io/api/discovery/v1, resourceName: EndpointSlice }
+
+  # batch/v1
+  - { package: k8s.io/api/batch/v1, resourceName: Job }
+  - { package: k8s.io/api/batch/v1, resourceName: CronJob, defaultingFunc: DefaultCronJob }
+
+  # admissionregistration/v1
+  - { package: k8s.io/api/admissionregistration/v1, resourceName: ValidatingWebhookConfiguration }
+  - { package: k8s.io/api/admissionregistration/v1, resourceName: MutatingWebhookConfiguration }
+
+  # apps/v1
+  - { package: k8s.io/api/apps/v1, resourceName: StatefulSet, defaultingFunc: DefaultStatefulSet }
+  - { package: k8s.io/api/apps/v1, resourceName: Deployment, defaultingFunc: DefaultDeployment }
+  - { package: k8s.io/api/apps/v1, resourceName: DaemonSet, defaultingFunc: DefaultDaemonSet }
+
+  # rbac/v1
+  - { package: k8s.io/api/rbac/v1, resourceName: Role }
+  - { package: k8s.io/api/rbac/v1, resourceName: RoleBinding }
+  - { package: k8s.io/api/rbac/v1, resourceName: ClusterRole }
+  - { package: k8s.io/api/rbac/v1, resourceName: ClusterRoleBinding }
+
+  # networking/v1
+  - { package: k8s.io/api/networking/v1, resourceName: Ingress, resourceNamePlural: Ingresses }
+
+  # policy/v1
+  - { package: k8s.io/api/policy/v1, resourceName: PodDisruptionBudget, recreate: true }
