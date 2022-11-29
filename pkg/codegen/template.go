@@ -153,5 +153,10 @@ func deriveAlias(packageName string) (string, error) {
 		return "", errors.New("package has less than 2 segments")
 	}
 
-	return strings.Join(parts[len(parts)-2:], ""), nil
+	// remove dots, so that e.g. "k8s.io/autoscaler/vertical-pod-autoscaler/pkg/apis/autoscaling.k8s.io/v1"
+	// results in "autoscalingk8siov1"
+	pkg := strings.ReplaceAll(parts[len(parts)-2], ".", "")
+	version := parts[len(parts)-1]
+
+	return pkg + version, nil
 }
