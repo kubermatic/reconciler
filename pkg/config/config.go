@@ -20,6 +20,11 @@ type Configuration struct {
 	Package       string         `yaml:"package"`
 	ResourceTypes []ResourceType `yaml:"resourceTypes"`
 	Boilerplate   string         `yaml:"boilerplate"`
+
+	// Internal should only be set if the generated code is placed in the same
+	// package as all the other helpers (i.e. practically never outside of this
+	// repository).
+	Internal bool `yaml:"internal"`
 }
 
 type ResourceType struct {

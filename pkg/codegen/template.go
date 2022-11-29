@@ -75,7 +75,12 @@ func Render(cfg *config.Configuration) ([]byte, error) {
 	tpl := template.
 		New("").
 		Funcs(sprig.TxtFuncMap()).
-		Funcs(extraTemplateFunctions)
+		Funcs(extraTemplateFunctions).
+		Funcs(template.FuncMap{
+			"isInternal": func() bool {
+				return cfg.Internal
+			},
+		})
 
 	if tpl, err = tpl.Parse(importsTemplate); err != nil {
 		return nil, fmt.Errorf("failed to parse imports template: %w", err)

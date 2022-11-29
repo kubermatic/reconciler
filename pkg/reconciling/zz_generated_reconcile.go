@@ -41,12 +41,12 @@ type NamedNamespaceReconcilerFactory = func() (name string, create NamespaceReco
 
 // NamespaceObjectWrapper adds a wrapper so the NamespaceReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func NamespaceObjectWrapper(create NamespaceReconciler) ObjectReconciler {
+func NamespaceObjectWrapper(reconciler NamespaceReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*corev1.Namespace))
+			return reconciler(existing.(*corev1.Namespace))
 		}
-		return create(&corev1.Namespace{})
+		return reconciler(&corev1.Namespace{})
 	}
 }
 
@@ -55,8 +55,8 @@ func ReconcileNamespaces(ctx context.Context, namedFactories []NamedNamespaceRec
 	for _, get := range namedFactories {
 		name, create := get()
 		createObject := NamespaceObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)
@@ -78,12 +78,12 @@ type NamedServiceReconcilerFactory = func() (name string, create ServiceReconcil
 
 // ServiceObjectWrapper adds a wrapper so the ServiceReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func ServiceObjectWrapper(create ServiceReconciler) ObjectReconciler {
+func ServiceObjectWrapper(reconciler ServiceReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*corev1.Service))
+			return reconciler(existing.(*corev1.Service))
 		}
-		return create(&corev1.Service{})
+		return reconciler(&corev1.Service{})
 	}
 }
 
@@ -92,8 +92,8 @@ func ReconcileServices(ctx context.Context, namedFactories []NamedServiceReconci
 	for _, get := range namedFactories {
 		name, create := get()
 		createObject := ServiceObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)
@@ -115,12 +115,12 @@ type NamedSecretReconcilerFactory = func() (name string, create SecretReconciler
 
 // SecretObjectWrapper adds a wrapper so the SecretReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func SecretObjectWrapper(create SecretReconciler) ObjectReconciler {
+func SecretObjectWrapper(reconciler SecretReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*corev1.Secret))
+			return reconciler(existing.(*corev1.Secret))
 		}
-		return create(&corev1.Secret{})
+		return reconciler(&corev1.Secret{})
 	}
 }
 
@@ -129,8 +129,8 @@ func ReconcileSecrets(ctx context.Context, namedFactories []NamedSecretReconcile
 	for _, get := range namedFactories {
 		name, create := get()
 		createObject := SecretObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)
@@ -152,12 +152,12 @@ type NamedConfigMapReconcilerFactory = func() (name string, create ConfigMapReco
 
 // ConfigMapObjectWrapper adds a wrapper so the ConfigMapReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func ConfigMapObjectWrapper(create ConfigMapReconciler) ObjectReconciler {
+func ConfigMapObjectWrapper(reconciler ConfigMapReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*corev1.ConfigMap))
+			return reconciler(existing.(*corev1.ConfigMap))
 		}
-		return create(&corev1.ConfigMap{})
+		return reconciler(&corev1.ConfigMap{})
 	}
 }
 
@@ -166,8 +166,8 @@ func ReconcileConfigMaps(ctx context.Context, namedFactories []NamedConfigMapRec
 	for _, get := range namedFactories {
 		name, create := get()
 		createObject := ConfigMapObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)
@@ -189,12 +189,12 @@ type NamedServiceAccountReconcilerFactory = func() (name string, create ServiceA
 
 // ServiceAccountObjectWrapper adds a wrapper so the ServiceAccountReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func ServiceAccountObjectWrapper(create ServiceAccountReconciler) ObjectReconciler {
+func ServiceAccountObjectWrapper(reconciler ServiceAccountReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*corev1.ServiceAccount))
+			return reconciler(existing.(*corev1.ServiceAccount))
 		}
-		return create(&corev1.ServiceAccount{})
+		return reconciler(&corev1.ServiceAccount{})
 	}
 }
 
@@ -203,8 +203,8 @@ func ReconcileServiceAccounts(ctx context.Context, namedFactories []NamedService
 	for _, get := range namedFactories {
 		name, create := get()
 		createObject := ServiceAccountObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)
@@ -226,12 +226,12 @@ type NamedEndpointsReconcilerFactory = func() (name string, create EndpointsReco
 
 // EndpointsObjectWrapper adds a wrapper so the EndpointsReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func EndpointsObjectWrapper(create EndpointsReconciler) ObjectReconciler {
+func EndpointsObjectWrapper(reconciler EndpointsReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*corev1.Endpoints))
+			return reconciler(existing.(*corev1.Endpoints))
 		}
-		return create(&corev1.Endpoints{})
+		return reconciler(&corev1.Endpoints{})
 	}
 }
 
@@ -240,8 +240,8 @@ func ReconcileEndpoints(ctx context.Context, namedFactories []NamedEndpointsReco
 	for _, get := range namedFactories {
 		name, create := get()
 		createObject := EndpointsObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)
@@ -263,12 +263,12 @@ type NamedEndpointSliceReconcilerFactory = func() (name string, create EndpointS
 
 // EndpointSliceObjectWrapper adds a wrapper so the EndpointSliceReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func EndpointSliceObjectWrapper(create EndpointSliceReconciler) ObjectReconciler {
+func EndpointSliceObjectWrapper(reconciler EndpointSliceReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*discoveryv1.EndpointSlice))
+			return reconciler(existing.(*discoveryv1.EndpointSlice))
 		}
-		return create(&discoveryv1.EndpointSlice{})
+		return reconciler(&discoveryv1.EndpointSlice{})
 	}
 }
 
@@ -277,8 +277,8 @@ func ReconcileEndpointSlices(ctx context.Context, namedFactories []NamedEndpoint
 	for _, get := range namedFactories {
 		name, create := get()
 		createObject := EndpointSliceObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)
@@ -300,12 +300,12 @@ type NamedJobReconcilerFactory = func() (name string, create JobReconciler)
 
 // JobObjectWrapper adds a wrapper so the JobReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func JobObjectWrapper(create JobReconciler) ObjectReconciler {
+func JobObjectWrapper(reconciler JobReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*batchv1.Job))
+			return reconciler(existing.(*batchv1.Job))
 		}
-		return create(&batchv1.Job{})
+		return reconciler(&batchv1.Job{})
 	}
 }
 
@@ -314,8 +314,8 @@ func ReconcileJobs(ctx context.Context, namedFactories []NamedJobReconcilerFacto
 	for _, get := range namedFactories {
 		name, create := get()
 		createObject := JobObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)
@@ -337,12 +337,12 @@ type NamedCronJobReconcilerFactory = func() (name string, create CronJobReconcil
 
 // CronJobObjectWrapper adds a wrapper so the CronJobReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func CronJobObjectWrapper(create CronJobReconciler) ObjectReconciler {
+func CronJobObjectWrapper(reconciler CronJobReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*batchv1.CronJob))
+			return reconciler(existing.(*batchv1.CronJob))
 		}
-		return create(&batchv1.CronJob{})
+		return reconciler(&batchv1.CronJob{})
 	}
 }
 
@@ -352,8 +352,8 @@ func ReconcileCronJobs(ctx context.Context, namedFactories []NamedCronJobReconci
 		name, create := get()
 		create = DefaultCronJob(create)
 		createObject := CronJobObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)
@@ -375,12 +375,12 @@ type NamedValidatingWebhookConfigurationReconcilerFactory = func() (name string,
 
 // ValidatingWebhookConfigurationObjectWrapper adds a wrapper so the ValidatingWebhookConfigurationReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func ValidatingWebhookConfigurationObjectWrapper(create ValidatingWebhookConfigurationReconciler) ObjectReconciler {
+func ValidatingWebhookConfigurationObjectWrapper(reconciler ValidatingWebhookConfigurationReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*admissionregistrationv1.ValidatingWebhookConfiguration))
+			return reconciler(existing.(*admissionregistrationv1.ValidatingWebhookConfiguration))
 		}
-		return create(&admissionregistrationv1.ValidatingWebhookConfiguration{})
+		return reconciler(&admissionregistrationv1.ValidatingWebhookConfiguration{})
 	}
 }
 
@@ -389,8 +389,8 @@ func ReconcileValidatingWebhookConfigurations(ctx context.Context, namedFactorie
 	for _, get := range namedFactories {
 		name, create := get()
 		createObject := ValidatingWebhookConfigurationObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)
@@ -412,12 +412,12 @@ type NamedMutatingWebhookConfigurationReconcilerFactory = func() (name string, c
 
 // MutatingWebhookConfigurationObjectWrapper adds a wrapper so the MutatingWebhookConfigurationReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func MutatingWebhookConfigurationObjectWrapper(create MutatingWebhookConfigurationReconciler) ObjectReconciler {
+func MutatingWebhookConfigurationObjectWrapper(reconciler MutatingWebhookConfigurationReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*admissionregistrationv1.MutatingWebhookConfiguration))
+			return reconciler(existing.(*admissionregistrationv1.MutatingWebhookConfiguration))
 		}
-		return create(&admissionregistrationv1.MutatingWebhookConfiguration{})
+		return reconciler(&admissionregistrationv1.MutatingWebhookConfiguration{})
 	}
 }
 
@@ -426,8 +426,8 @@ func ReconcileMutatingWebhookConfigurations(ctx context.Context, namedFactories 
 	for _, get := range namedFactories {
 		name, create := get()
 		createObject := MutatingWebhookConfigurationObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)
@@ -449,12 +449,12 @@ type NamedStatefulSetReconcilerFactory = func() (name string, create StatefulSet
 
 // StatefulSetObjectWrapper adds a wrapper so the StatefulSetReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func StatefulSetObjectWrapper(create StatefulSetReconciler) ObjectReconciler {
+func StatefulSetObjectWrapper(reconciler StatefulSetReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*appsv1.StatefulSet))
+			return reconciler(existing.(*appsv1.StatefulSet))
 		}
-		return create(&appsv1.StatefulSet{})
+		return reconciler(&appsv1.StatefulSet{})
 	}
 }
 
@@ -464,8 +464,8 @@ func ReconcileStatefulSets(ctx context.Context, namedFactories []NamedStatefulSe
 		name, create := get()
 		create = DefaultStatefulSet(create)
 		createObject := StatefulSetObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)
@@ -487,12 +487,12 @@ type NamedDeploymentReconcilerFactory = func() (name string, create DeploymentRe
 
 // DeploymentObjectWrapper adds a wrapper so the DeploymentReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func DeploymentObjectWrapper(create DeploymentReconciler) ObjectReconciler {
+func DeploymentObjectWrapper(reconciler DeploymentReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*appsv1.Deployment))
+			return reconciler(existing.(*appsv1.Deployment))
 		}
-		return create(&appsv1.Deployment{})
+		return reconciler(&appsv1.Deployment{})
 	}
 }
 
@@ -502,8 +502,8 @@ func ReconcileDeployments(ctx context.Context, namedFactories []NamedDeploymentR
 		name, create := get()
 		create = DefaultDeployment(create)
 		createObject := DeploymentObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)
@@ -525,12 +525,12 @@ type NamedDaemonSetReconcilerFactory = func() (name string, create DaemonSetReco
 
 // DaemonSetObjectWrapper adds a wrapper so the DaemonSetReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func DaemonSetObjectWrapper(create DaemonSetReconciler) ObjectReconciler {
+func DaemonSetObjectWrapper(reconciler DaemonSetReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*appsv1.DaemonSet))
+			return reconciler(existing.(*appsv1.DaemonSet))
 		}
-		return create(&appsv1.DaemonSet{})
+		return reconciler(&appsv1.DaemonSet{})
 	}
 }
 
@@ -540,8 +540,8 @@ func ReconcileDaemonSets(ctx context.Context, namedFactories []NamedDaemonSetRec
 		name, create := get()
 		create = DefaultDaemonSet(create)
 		createObject := DaemonSetObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)
@@ -563,12 +563,12 @@ type NamedRoleReconcilerFactory = func() (name string, create RoleReconciler)
 
 // RoleObjectWrapper adds a wrapper so the RoleReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func RoleObjectWrapper(create RoleReconciler) ObjectReconciler {
+func RoleObjectWrapper(reconciler RoleReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*rbacv1.Role))
+			return reconciler(existing.(*rbacv1.Role))
 		}
-		return create(&rbacv1.Role{})
+		return reconciler(&rbacv1.Role{})
 	}
 }
 
@@ -577,8 +577,8 @@ func ReconcileRoles(ctx context.Context, namedFactories []NamedRoleReconcilerFac
 	for _, get := range namedFactories {
 		name, create := get()
 		createObject := RoleObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)
@@ -600,12 +600,12 @@ type NamedRoleBindingReconcilerFactory = func() (name string, create RoleBinding
 
 // RoleBindingObjectWrapper adds a wrapper so the RoleBindingReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func RoleBindingObjectWrapper(create RoleBindingReconciler) ObjectReconciler {
+func RoleBindingObjectWrapper(reconciler RoleBindingReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*rbacv1.RoleBinding))
+			return reconciler(existing.(*rbacv1.RoleBinding))
 		}
-		return create(&rbacv1.RoleBinding{})
+		return reconciler(&rbacv1.RoleBinding{})
 	}
 }
 
@@ -614,8 +614,8 @@ func ReconcileRoleBindings(ctx context.Context, namedFactories []NamedRoleBindin
 	for _, get := range namedFactories {
 		name, create := get()
 		createObject := RoleBindingObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)
@@ -637,12 +637,12 @@ type NamedClusterRoleReconcilerFactory = func() (name string, create ClusterRole
 
 // ClusterRoleObjectWrapper adds a wrapper so the ClusterRoleReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func ClusterRoleObjectWrapper(create ClusterRoleReconciler) ObjectReconciler {
+func ClusterRoleObjectWrapper(reconciler ClusterRoleReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*rbacv1.ClusterRole))
+			return reconciler(existing.(*rbacv1.ClusterRole))
 		}
-		return create(&rbacv1.ClusterRole{})
+		return reconciler(&rbacv1.ClusterRole{})
 	}
 }
 
@@ -651,8 +651,8 @@ func ReconcileClusterRoles(ctx context.Context, namedFactories []NamedClusterRol
 	for _, get := range namedFactories {
 		name, create := get()
 		createObject := ClusterRoleObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)
@@ -674,12 +674,12 @@ type NamedClusterRoleBindingReconcilerFactory = func() (name string, create Clus
 
 // ClusterRoleBindingObjectWrapper adds a wrapper so the ClusterRoleBindingReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func ClusterRoleBindingObjectWrapper(create ClusterRoleBindingReconciler) ObjectReconciler {
+func ClusterRoleBindingObjectWrapper(reconciler ClusterRoleBindingReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*rbacv1.ClusterRoleBinding))
+			return reconciler(existing.(*rbacv1.ClusterRoleBinding))
 		}
-		return create(&rbacv1.ClusterRoleBinding{})
+		return reconciler(&rbacv1.ClusterRoleBinding{})
 	}
 }
 
@@ -688,8 +688,8 @@ func ReconcileClusterRoleBindings(ctx context.Context, namedFactories []NamedClu
 	for _, get := range namedFactories {
 		name, create := get()
 		createObject := ClusterRoleBindingObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)
@@ -711,12 +711,12 @@ type NamedIngressReconcilerFactory = func() (name string, create IngressReconcil
 
 // IngressObjectWrapper adds a wrapper so the IngressReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func IngressObjectWrapper(create IngressReconciler) ObjectReconciler {
+func IngressObjectWrapper(reconciler IngressReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*networkingv1.Ingress))
+			return reconciler(existing.(*networkingv1.Ingress))
 		}
-		return create(&networkingv1.Ingress{})
+		return reconciler(&networkingv1.Ingress{})
 	}
 }
 
@@ -725,8 +725,8 @@ func ReconcileIngresses(ctx context.Context, namedFactories []NamedIngressReconc
 	for _, get := range namedFactories {
 		name, create := get()
 		createObject := IngressObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)
@@ -748,12 +748,12 @@ type NamedPodDisruptionBudgetReconcilerFactory = func() (name string, create Pod
 
 // PodDisruptionBudgetObjectWrapper adds a wrapper so the PodDisruptionBudgetReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func PodDisruptionBudgetObjectWrapper(create PodDisruptionBudgetReconciler) ObjectReconciler {
+func PodDisruptionBudgetObjectWrapper(reconciler PodDisruptionBudgetReconciler) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*policyv1.PodDisruptionBudget))
+			return reconciler(existing.(*policyv1.PodDisruptionBudget))
 		}
-		return create(&policyv1.PodDisruptionBudget{})
+		return reconciler(&policyv1.PodDisruptionBudget{})
 	}
 }
 
@@ -762,8 +762,8 @@ func ReconcilePodDisruptionBudgets(ctx context.Context, namedFactories []NamedPo
 	for _, get := range namedFactories {
 		name, create := get()
 		createObject := PodDisruptionBudgetObjectWrapper(create)
-		createObject = createWithNamespace(createObject, namespace)
-		createObject = createWithName(createObject, name)
+		createObject = CreateWithNamespace(createObject, namespace)
+		createObject = CreateWithName(createObject, name)
 
 		for _, objectModifier := range objectModifiers {
 			createObject = objectModifier(createObject)

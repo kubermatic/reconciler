@@ -41,9 +41,9 @@ type ObjectReconciler = func(existing ctrlruntimeclient.Object) (ctrlruntimeclie
 // ObjectModifier is a wrapper function which modifies the object which gets returned by the passed in ObjectCreator.
 type ObjectModifier func(create ObjectReconciler) ObjectReconciler
 
-func createWithNamespace(rawcreate ObjectReconciler, namespace string) ObjectReconciler {
+func CreateWithNamespace(reconciler ObjectReconciler, namespace string) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
-		obj, err := rawcreate(existing)
+		obj, err := reconciler(existing)
 		if err != nil {
 			return nil, err
 		}
@@ -52,9 +52,9 @@ func createWithNamespace(rawcreate ObjectReconciler, namespace string) ObjectRec
 	}
 }
 
-func createWithName(rawcreate ObjectReconciler, name string) ObjectReconciler {
+func CreateWithName(reconciler ObjectReconciler, name string) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
-		obj, err := rawcreate(existing)
+		obj, err := reconciler(existing)
 		if err != nil {
 			return nil, err
 		}
@@ -77,8 +77,8 @@ func objectLogger(obj ctrlruntimeclient.Object) *zap.SugaredLogger {
 // EnsureNamedObject will generate the Object with the passed create function & create or update it in Kubernetes if necessary.
 func EnsureNamedObject(ctx context.Context, namespacedName types.NamespacedName, rawcreate ObjectReconciler, client ctrlruntimeclient.Client, emptyObject ctrlruntimeclient.Object, requiresRecreate bool) error {
 	// A wrapper to ensure we always set the Namespace and Name. This is useful as we call create twice
-	create := createWithNamespace(rawcreate, namespacedName.Namespace)
-	create = createWithName(create, namespacedName.Name)
+	create := CreateWithNamespace(rawcreate, namespacedName.Namespace)
+	create = CreateWithName(create, namespacedName.Name)
 
 	exists := true
 	existingObject := emptyObject.DeepCopyObject().(ctrlruntimeclient.Object)

@@ -16,6 +16,7 @@
 # with this module.
 
 package: reconciling
+internal: true
 boilerplate: hack/boilerplate/boilerplate.go.txt
 resourceTypes:
   # core/v1

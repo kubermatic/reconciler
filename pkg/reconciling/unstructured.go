@@ -33,12 +33,12 @@ type NamedUnstructuredReconcilerFactory = func() (name, kind, apiVersion string,
 
 // UnstructuredObjectWrapper adds a wrapper so the UnstructuredReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func UnstructuredObjectWrapper(create UnstructuredReconciler, emptyObject *unstructured.Unstructured) ObjectReconciler {
+func UnstructuredObjectWrapper(reconciler UnstructuredReconciler, emptyObject *unstructured.Unstructured) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
-			return create(existing.(*unstructured.Unstructured))
+			return reconciler(existing.(*unstructured.Unstructured))
 		}
-		return create(emptyObject)
+		return reconciler(emptyObject)
 	}
 }
 
