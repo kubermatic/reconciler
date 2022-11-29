@@ -23,4 +23,8 @@ CONTAINERIZE_IMAGE=quay.io/kubermatic/build:go-1.19-node-18-2 containerize ./hac
 
 make clean build
 
-_build/reconciler-gen --config hack/defaultconfig.yaml > pkg/reconciling/zz_generated_reconcile.go
+target=pkg/reconciling/zz_generated_reconcile.go
+_build/reconciler-gen --config hack/defaultconfig.yaml > $target
+
+currentYear=$(date +%Y)
+sed -i "s/Copyright YEAR/Copyright $currentYear/g"  $target
