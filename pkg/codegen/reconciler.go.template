@@ -3,7 +3,7 @@
 type {{ .APIVersionPrefix }}{{ .ResourceName }}Reconciler = func(existing *{{ .ImportAlias }}.{{ .ResourceName }}) (*{{ .ImportAlias }}.{{ .ResourceName }}, error)
 
 // Named{{ .APIVersionPrefix }}{{ .ResourceName }}ReconcilerFactory returns the name of the resource and the corresponding Reconciler function.
-type Named{{ .APIVersionPrefix }}{{ .ResourceName }}ReconcilerFactory = func() (name string, create {{ .APIVersionPrefix }}{{ .ResourceName }}Reconciler)
+type Named{{ .APIVersionPrefix }}{{ .ResourceName }}ReconcilerFactory = func() (name string, reconciler {{ .APIVersionPrefix }}{{ .ResourceName }}Reconciler)
 
 // {{ .APIVersionPrefix }}{{ .ResourceName }}ObjectWrapper adds a wrapper so the {{ .APIVersionPrefix }}{{ .ResourceName }}Reconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
@@ -18,20 +18,20 @@ func {{ .APIVersionPrefix }}{{ .ResourceName }}ObjectWrapper(reconciler {{ .APIV
 
 // Reconcile{{ .APIVersionPrefix }}{{ .ResourceNamePlural }} will create and update the {{ .APIVersionPrefix }}{{ .ResourceNamePlural }} coming from the passed {{ .APIVersionPrefix }}{{ .ResourceName }}Reconciler slice.
 func Reconcile{{ .APIVersionPrefix }}{{ .ResourceNamePlural }}(ctx context.Context, namedFactories []{{ if not isInternal }}reconciling.{{ end }}Named{{ .APIVersionPrefix }}{{ .ResourceName }}ReconcilerFactory, namespace string, client ctrlruntimeclient.Client, objectModifiers ...{{ if not isInternal }}reconciling.{{ end }}ObjectModifier) error {
-	for _, get := range namedFactories {
-		name, create := get()
+	for _, factory := range namedFactories {
+		name, reconciler := factory()
 {{- if .DefaultingFunc }}
-		create = {{ .DefaultingFunc }}(create)
+		reconciler = {{ .DefaultingFunc }}(reconciler)
 {{- end }}
-		createObject := {{ .APIVersionPrefix }}{{ .ResourceName }}ObjectWrapper(create)
-		createObject = {{ if not isInternal }}reconciling.{{ end }}CreateWithNamespace(createObject, namespace)
-		createObject = {{ if not isInternal }}reconciling.{{ end }}CreateWithName(createObject, name)
+		reconcileObject := {{ .APIVersionPrefix }}{{ .ResourceName }}ObjectWrapper(reconciler)
+		reconcileObject = {{ if not isInternal }}reconciling.{{ end }}CreateWithNamespace(reconcileObject, namespace)
+		reconcileObject = {{ if not isInternal }}reconciling.{{ end }}CreateWithName(reconcileObject, name)
 
 		for _, objectModifier := range objectModifiers {
-			createObject = objectModifier(createObject)
+			reconcileObject = objectModifier(reconcileObject)
 		}
 
-		if err := {{ if not isInternal }}reconciling.{{ end }}EnsureNamedObject(ctx, types.NamespacedName{Namespace: namespace, Name: name}, createObject, client, &{{ .ImportAlias }}.{{ .ResourceName }}{}, {{ .Recreate }}); err != nil {
+		if err := {{ if not isInternal }}reconciling.{{ end }}EnsureNamedObject(ctx, types.NamespacedName{Namespace: namespace, Name: name}, reconcileObject, client, &{{ .ImportAlias }}.{{ .ResourceName }}{}, {{ .Recreate }}); err != nil {
 			return fmt.Errorf("failed to ensure {{ .ResourceName }} %s/%s: %w", namespace, name, err)
 		}
 	}

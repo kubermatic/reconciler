@@ -51,6 +51,7 @@ resourceTypes:
 
   # networking/v1
   - { package: k8s.io/api/networking/v1, resourceName: Ingress, resourceNamePlural: Ingresses }
+  - { package: k8s.io/api/networking/v1, resourceName: NetworkPolicy, resourceNamePlural: NetworkPolicies }
 
   # policy/v1
   - { package: k8s.io/api/policy/v1, resourceName: PodDisruptionBudget, recreate: true }
