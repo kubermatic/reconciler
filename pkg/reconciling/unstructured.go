@@ -25,15 +25,15 @@ import (
 	ctrlruntimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// UnstructuredCreator defines an interface to create/update Unstructureds.
-type UnstructuredCreator = func(existing *unstructured.Unstructured) (*unstructured.Unstructured, error)
+// UnstructuredReconciler defines an interface to create/update Unstructureds.
+type UnstructuredReconciler = func(existing *unstructured.Unstructured) (*unstructured.Unstructured, error)
 
-// NamedUnstructuredCreatorGetter returns the name of the resource and the corresponding creator function.
-type NamedUnstructuredCreatorGetter = func() (name, kind, apiVersion string, create UnstructuredCreator)
+// NamedUnstructuredReconcilerFactory returns the name of the resource and the corresponding creator function.
+type NamedUnstructuredReconcilerFactory = func() (name, kind, apiVersion string, create UnstructuredReconciler)
 
-// UnstructuredObjectWrapper adds a wrapper so the UnstructuredCreator matches ObjectCreator.
+// UnstructuredObjectWrapper adds a wrapper so the UnstructuredReconciler matches ObjectReconciler.
 // This is needed as Go does not support function interface matching.
-func UnstructuredObjectWrapper(create UnstructuredCreator, emptyObject *unstructured.Unstructured) ObjectReconciler {
+func UnstructuredObjectWrapper(create UnstructuredReconciler, emptyObject *unstructured.Unstructured) ObjectReconciler {
 	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 		if existing != nil {
 			return create(existing.(*unstructured.Unstructured))
@@ -42,9 +42,9 @@ func UnstructuredObjectWrapper(create UnstructuredCreator, emptyObject *unstruct
 	}
 }
 
-// ReconcileUnstructureds will create and update the Unstructureds coming from the passed UnstructuredCreator slice.
-func ReconcileUnstructureds(ctx context.Context, namedGetters []NamedUnstructuredCreatorGetter, namespace string, client ctrlruntimeclient.Client, objectModifiers ...ObjectModifier) error {
-	for _, get := range namedGetters {
+// ReconcileUnstructureds will create and update the Unstructureds coming from the passed UnstructuredReconciler slice.
+func ReconcileUnstructureds(ctx context.Context, namedFactories []NamedUnstructuredReconcilerFactory, namespace string, client ctrlruntimeclient.Client, objectModifiers ...ObjectModifier) error {
+	for _, get := range namedFactories {
 		name, kind, apiVersion, create := get()
 		if kind == "" || apiVersion == "" {
 			return fmt.Errorf("both Kind(%q) and apiVersion(%q) must be set", kind, apiVersion)
