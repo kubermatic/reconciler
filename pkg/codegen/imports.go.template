@@ -1,13 +1,8 @@
 {{- define "imports" -}}
 import (
-	"fmt"
-	"context"
-
 {{ if not .Configuration.Internal }}
 	"k8c.io/reconciler/pkg/reconciling"
 {{- end }}
-	"k8s.io/apimachinery/pkg/types"
-	ctrlruntimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 {{ range .Imports }}
 	{{ .Alias }} "{{ .Package }}"
 {{- end }}

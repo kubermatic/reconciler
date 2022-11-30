@@ -502,7 +502,7 @@ func TestDefaultDeployment(t *testing.T) {
 	}
 
 	client := controllerruntimefake.NewClientBuilder().WithObjects(existingObject).Build()
-	if err := ReconcileDeployments(context.Background(), reconcilers, testNamespace, client); err != nil {
+	if err := EnsureNamedObjects(context.Background(), client, testNamespace, reconcilers); err != nil {
 		t.Errorf("EnsureObject returned an error while none was expected: %v", err)
 	}
 
@@ -575,7 +575,7 @@ func TestDefaultStatefulSet(t *testing.T) {
 	}
 
 	client := controllerruntimefake.NewClientBuilder().WithObjects(existingObject).Build()
-	if err := ReconcileStatefulSets(context.Background(), reconcilers, testNamespace, client); err != nil {
+	if err := EnsureNamedObjects(context.Background(), client, testNamespace, reconcilers); err != nil {
 		t.Errorf("EnsureObject returned an error while none was expected: %v", err)
 	}
 
@@ -648,7 +648,7 @@ func TestDefaultDaemonSet(t *testing.T) {
 	}
 
 	client := controllerruntimefake.NewClientBuilder().WithObjects(existingObject).Build()
-	if err := ReconcileDaemonSets(context.Background(), reconcilers, testNamespace, client); err != nil {
+	if err := EnsureNamedObjects(context.Background(), client, testNamespace, reconcilers); err != nil {
 		t.Errorf("EnsureObject returned an error while none was expected: %v", err)
 	}
 
@@ -729,7 +729,7 @@ func TestDefaultCronJob(t *testing.T) {
 	}
 
 	client := controllerruntimefake.NewClientBuilder().WithObjects(existingObject).Build()
-	if err := ReconcileCronJobs(context.Background(), reconcilers, testNamespace, client); err != nil {
+	if err := EnsureNamedObjects(context.Background(), client, testNamespace, reconcilers); err != nil {
 		t.Errorf("EnsureObject returned an error while none was expected: %v", err)
 	}
 
@@ -841,16 +841,12 @@ func TestDeploymentStrategyDefaulting(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			reconciler := func(_ *appsv1.Deployment) (*appsv1.Deployment, error) {
-				return tc.in, nil
-			}
-			reconciler = DefaultDeployment(reconciler)
-			deployment, err := reconciler(&appsv1.Deployment{})
+			deployment, err := DefaultDeployment(&appsv1.Deployment{}, tc.in)
 			if err != nil {
 				t.Fatalf("error when calling reconciler: %v", err)
 			}
 
-			if err := tc.verify(deployment); err != nil {
+			if err := tc.verify(deployment.(*appsv1.Deployment)); err != nil {
 				t.Fatal(err)
 			}
 		})

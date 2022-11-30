@@ -28,39 +28,30 @@ import (
 // UnstructuredReconciler defines an interface to create/update Unstructureds.
 type UnstructuredReconciler = func(existing *unstructured.Unstructured) (*unstructured.Unstructured, error)
 
-// NamedUnstructuredReconcilerFactory returns the name of the resource and the corresponding reconciler function.
+// NamedUnstructuredReconcilerFactory returns the name, kind and API version of the resource and the
+// corresponding reconciler function.
 type NamedUnstructuredReconcilerFactory = func() (name, kind, apiVersion string, create UnstructuredReconciler)
 
-// UnstructuredObjectWrapper adds a wrapper so the UnstructuredReconciler matches ObjectReconciler.
-// This is needed as Go does not support function interface matching.
-func UnstructuredObjectWrapper(reconciler UnstructuredReconciler, emptyObject *unstructured.Unstructured) ObjectReconciler {
-	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
-		if existing != nil {
-			return reconciler(existing.(*unstructured.Unstructured))
-		}
-		return reconciler(emptyObject)
-	}
-}
+// EnsureNamedUnstructuredObjects will call EnsureNamedObject for each of the given reconciler functions.
+// This is a dedicated function (the sister of EnsureNamedObjects) because unstructured objects require
+// us to manually inject the API version and kind, which is not possible with the regular ObjectReconcilers,
+// as they cannot provide this information.
+func EnsureNamedUnstructuredObjects(
+	ctx context.Context,
+	client ctrlruntimeclient.Client,
+	namespace string,
+	creatorFactories []NamedUnstructuredReconcilerFactory,
+	objectModifiers ...ObjectModifier,
+) error {
+	for _, factory := range creatorFactories {
+		name, kind, apiVersion, reconciler := factory()
 
-// ReconcileUnstructureds will create and update the Unstructureds coming from the passed UnstructuredReconciler slice.
-func ReconcileUnstructureds(ctx context.Context, namedFactories []NamedUnstructuredReconcilerFactory, namespace string, client ctrlruntimeclient.Client, objectModifiers ...ObjectModifier) error {
-	for _, get := range namedFactories {
-		name, kind, apiVersion, create := get()
-		if kind == "" || apiVersion == "" {
-			return fmt.Errorf("both Kind(%q) and apiVersion(%q) must be set", kind, apiVersion)
-		}
+		emptyObj := &unstructured.Unstructured{}
+		emptyObj.SetAPIVersion(apiVersion)
+		emptyObj.SetKind(kind)
 
-		emptyObject := &unstructured.Unstructured{}
-		emptyObject.SetKind(kind)
-		emptyObject.SetAPIVersion(apiVersion)
-
-		createObject := UnstructuredObjectWrapper(create, emptyObject)
-		for _, objectModifier := range objectModifiers {
-			createObject = objectModifier(createObject)
-		}
-
-		if err := EnsureNamedObject(ctx, types.NamespacedName{Namespace: namespace, Name: name}, createObject, client, emptyObject, false); err != nil {
-			return fmt.Errorf("failed to ensure Unstructured %s.%s %s/%s: %w", kind, apiVersion, namespace, name, err)
+		if err := EnsureNamedObject(ctx, client, types.NamespacedName{Namespace: namespace, Name: name}, emptyObj, reconciler, objectModifiers...); err != nil {
+			return fmt.Errorf("failed to ensure %s %q: %w", objectKind(emptyObj), objectName(name, namespace), err)
 		}
 	}
 

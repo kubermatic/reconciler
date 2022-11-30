@@ -28,8 +28,11 @@ import (
 	"k8c.io/reconciler/pkg/log"
 
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	ctrlruntimeclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,31 +44,18 @@ type ObjectReconciler = func(existing ctrlruntimeclient.Object) (ctrlruntimeclie
 // ObjectModifier is a wrapper function which modifies the object which gets returned by the passed in ObjectReconciler.
 type ObjectModifier func(create ObjectReconciler) ObjectReconciler
 
-func CreateWithNamespace(reconciler ObjectReconciler, namespace string) ObjectReconciler {
-	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
-		obj, err := reconciler(existing)
-		if err != nil {
-			return nil, err
-		}
-		obj.(metav1.Object).SetNamespace(namespace)
-		return obj, nil
-	}
-}
+// GenericObjectReconciler defines an interface to create/update a T.
+type GenericObjectReconciler[T any] func(existing T) (T, error)
 
-func CreateWithName(reconciler ObjectReconciler, name string) ObjectReconciler {
-	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
-		obj, err := reconciler(existing)
-		if err != nil {
-			return nil, err
-		}
-		obj.(metav1.Object).SetName(name)
-		return obj, nil
-	}
-}
+// GenericNamedObjectReconciler is a wrapper function which modifies the object which gets returned by the passed in GenericObjectReconciler.
+type GenericNamedObjectReconciler[T any] func() (string, GenericObjectReconciler[T])
+
+// GenericObjectModifier is a wrapper function which modifies the object which gets returned by the passed in ObjectReconciler.
+type GenericObjectModifier[T any] func(create GenericObjectReconciler[T]) GenericObjectReconciler[T]
 
 func objectLogger(obj ctrlruntimeclient.Object) *zap.SugaredLogger {
 	// make sure we handle objects with broken typeMeta and still create a nice-looking kind name
-	logger := log.Logger().With("kind", reflect.TypeOf(obj).Elem())
+	logger := log.Logger().With("kind", objectKind(obj))
 	if ns := obj.GetNamespace(); ns != "" {
 		logger = logger.With("namespace", ns)
 	}
@@ -74,17 +64,115 @@ func objectLogger(obj ctrlruntimeclient.Object) *zap.SugaredLogger {
 	return logger.With("name", obj.GetName())
 }
 
-// EnsureNamedObject will generate the Object with the passed create function & create or update it in Kubernetes if necessary.
-func EnsureNamedObject(ctx context.Context, namespacedName types.NamespacedName, rawReconciler ObjectReconciler, client ctrlruntimeclient.Client, emptyObject ctrlruntimeclient.Object, requiresRecreate bool) error {
-	// A wrapper to ensure we always set the Namespace and Name. This is useful as we call reconciler twice
-	reconciler := CreateWithNamespace(rawReconciler, namespacedName.Namespace)
-	reconciler = CreateWithName(reconciler, namespacedName.Name)
+func requiresRecreate(x interface{}) bool {
+	_, ok := x.(*policyv1.PodDisruptionBudget)
+	return ok
+}
 
+func objectKind(obj ctrlruntimeclient.Object) string {
+	if u, ok := obj.(*unstructured.Unstructured); ok {
+		gvk := u.GetObjectKind().GroupVersionKind()
+
+		return fmt.Sprintf("%s/%s.%s", gvk.Group, gvk.Version, gvk.Kind)
+	}
+
+	// make sure we handle objects with broken typeMeta and still create a nice-looking kind name
+	return reflect.TypeOf(obj).Elem().String()
+}
+
+func objectName(name, namespace string) string {
+	result := name
+	if namespace != "" {
+		result = fmt.Sprintf("%s/%s", namespace, name)
+	}
+
+	return result
+}
+
+// EnsureNamedObjects will call EnsureNamedObject for each of the given reconciler functions.
+func EnsureNamedObjects[T ctrlruntimeclient.Object](
+	ctx context.Context,
+	client ctrlruntimeclient.Client,
+	namespace string,
+	reconcilerFactories []GenericNamedObjectReconciler[T],
+	objectModifiers ...ObjectModifier,
+) error {
+	for _, factory := range reconcilerFactories {
+		name, reconciler := factory()
+
+		// create a new instance of the type represented by T
+		var placeholder T
+		emptyObject := reflect.New(reflect.TypeOf(placeholder).Elem()).Interface().(T)
+
+		if err := EnsureNamedObject(ctx, client, types.NamespacedName{Namespace: namespace, Name: name}, emptyObject, reconciler, objectModifiers...); err != nil {
+			return fmt.Errorf("failed to ensure %s %q: %w", objectKind(emptyObject), objectName(name, namespace), err)
+		}
+	}
+
+	return nil
+}
+
+func makeGenericObjectReconciler[T ctrlruntimeclient.Object](wrapThis ObjectReconciler) GenericObjectReconciler[T] {
+	return func(existing T) (T, error) {
+		result, err := wrapThis(existing)
+		return result.(T), err
+	}
+}
+
+func makeInterfacedObjectReconciler[T ctrlruntimeclient.Object](wrapThis GenericObjectReconciler[T]) ObjectReconciler {
+	return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
+		return wrapThis(existing.(T))
+	}
+}
+
+func wrapGenericObjectModifier[T ctrlruntimeclient.Object](wrapThis GenericObjectReconciler[T], wrapper ObjectModifier) GenericObjectReconciler[T] {
+	// convert the generic reconciler into an interfaced reconciler
+	modifieddReconciler := makeInterfacedObjectReconciler(wrapThis)
+
+	// wrap the interfaced reconciler with the object modifier
+	modifieddReconciler = wrapper(modifieddReconciler)
+
+	// convert back to a generic reconciler
+	return makeGenericObjectReconciler[T](modifieddReconciler)
+}
+
+// EnsureNamedObject will generate the Object with the passed create function & create or update it in Kubernetes if necessary.
+func EnsureNamedObject[T ctrlruntimeclient.Object](
+	ctx context.Context,
+	client ctrlruntimeclient.Client,
+	namespacedName types.NamespacedName,
+	existingObject T,
+	reconciler GenericObjectReconciler[T],
+	objectModifiers ...ObjectModifier,
+) error {
+	// ensure that whatever a reconciler does or does not, we will always
+	// set the name and namespace (i.e. the reconciler cannot control these)
+	reconcilerWithIdentity := func(obj T) (T, error) {
+		created, err := reconciler(obj)
+		if err != nil {
+			return obj, err
+		}
+
+		created.SetName(namespacedName.Name)
+		created.SetNamespace(namespacedName.Namespace)
+
+		return created, nil
+	}
+
+	// ensure we always apply the default values
+	defaultedReconciler := applyDefaultValues(reconcilerWithIdentity)
+
+	// wrap the reconciler in the modifiers, for this it's necessary to convert
+	// the interface-based modifiers into generic modifiers.
+	for _, objectModifier := range objectModifiers {
+		defaultedReconciler = wrapGenericObjectModifier(defaultedReconciler, objectModifier)
+	}
+
+	// check if the object exists already
 	exists := true
-	existingObject := emptyObject.DeepCopyObject().(ctrlruntimeclient.Object)
 	if err := client.Get(ctx, namespacedName, existingObject); err != nil {
 		if !apierrors.IsNotFound(err) {
-			return fmt.Errorf("failed to get Object(%T): %w", existingObject, err)
+			return fmt.Errorf("failed to get %s: %w", objectKind(existingObject), err)
 		}
 		exists = false
 	}
@@ -99,13 +187,14 @@ func EnsureNamedObject(ctx context.Context, namespacedName types.NamespacedName,
 
 	// Object does not exist in lister -> Create the Object
 	if !exists {
-		obj, err := reconciler(emptyObject)
+		obj, err := defaultedReconciler(existingObject)
 		if err != nil {
 			return fmt.Errorf("failed to generate object: %w", err)
 		}
 		if err := client.Create(ctx, obj); err != nil {
-			return fmt.Errorf("failed to create %T '%s': %w", obj, namespacedName.String(), err)
+			return fmt.Errorf("failed to create %s %q: %w", objectKind(existingObject), namespacedName.String(), err)
 		}
+
 		// Wait until the object exists in the cache
 		createdObjectIsInCache := WaitUntilObjectExistsInCacheConditionFunc(ctx, client, objectLogger(obj), namespacedName, obj)
 		err = wait.PollImmediate(10*time.Millisecond, 10*time.Second, createdObjectIsInCache)
@@ -119,19 +208,19 @@ func EnsureNamedObject(ctx context.Context, namespacedName types.NamespacedName,
 
 	// Create a copy to make sure we don't compare the object onto itself
 	// in case the reconciler returns the same pointer it got passed in
-	obj, err := reconciler(existingObject.DeepCopyObject().(ctrlruntimeclient.Object))
+	obj, err := defaultedReconciler(existingObject.DeepCopyObject().(T))
 	if err != nil {
-		return fmt.Errorf("failed to build Object(%T) '%s': %w", existingObject, namespacedName.String(), err)
+		return fmt.Errorf("failed to build %s %q: %w", objectKind(existingObject), namespacedName.String(), err)
 	}
 
-	if compare.DeepEqual(obj.(metav1.Object), existingObject.(metav1.Object)) {
+	if compare.DeepEqual(obj, existingObject) {
 		return nil
 	}
 
-	if !requiresRecreate {
+	if !requiresRecreate(obj) {
 		// We keep resetting the status here to avoid working on any outdated object
 		// and all objects are up-to-date once a reconcile process starts.
-		switch v := obj.(type) {
+		switch v := any(obj).(type) {
 		case *appsv1.StatefulSet:
 			v.Status.Reset()
 		case *appsv1.Deployment:
@@ -139,11 +228,11 @@ func EnsureNamedObject(ctx context.Context, namespacedName types.NamespacedName,
 		}
 
 		if err := client.Update(ctx, obj); err != nil {
-			return fmt.Errorf("failed to update object %T %q: %w", obj, namespacedName.String(), err)
+			return fmt.Errorf("failed to update object %s %q: %w", objectKind(existingObject), namespacedName.String(), err)
 		}
 	} else {
 		if err := client.Delete(ctx, obj.DeepCopyObject().(ctrlruntimeclient.Object)); err != nil {
-			return fmt.Errorf("failed to delete object %T %q: %w", obj, namespacedName.String(), err)
+			return fmt.Errorf("failed to delete object %s %q: %w", objectKind(existingObject), namespacedName.String(), err)
 		}
 
 		obj.SetResourceVersion("")
@@ -151,7 +240,7 @@ func EnsureNamedObject(ctx context.Context, namespacedName types.NamespacedName,
 		obj.SetGeneration(0)
 
 		if err := client.Create(ctx, obj); err != nil {
-			return fmt.Errorf("failed to create object %T %q: %w", obj, namespacedName.String(), err)
+			return fmt.Errorf("failed to create object %s %q: %w", objectKind(existingObject), namespacedName.String(), err)
 		}
 	}
 
@@ -165,6 +254,35 @@ func EnsureNamedObject(ctx context.Context, namespacedName types.NamespacedName,
 	objectLogger(obj).Info("updated resource")
 
 	return nil
+}
+
+func applyDefaultValues[T ctrlruntimeclient.Object](reconciler GenericObjectReconciler[T]) GenericObjectReconciler[T] {
+	return func(t T) (T, error) {
+		oldObj := t.DeepCopyObject().(T)
+
+		created, err := reconciler(t)
+		if err != nil {
+			return t, err
+		}
+
+		var defaulted ctrlruntimeclient.Object = created
+
+		switch v := any(oldObj).(type) {
+		case *appsv1.Deployment:
+			defaulted, err = DefaultDeployment(v, any(created).(*appsv1.Deployment))
+
+		case *appsv1.StatefulSet:
+			defaulted, err = DefaultStatefulSet(v, any(created).(*appsv1.StatefulSet))
+
+		case *appsv1.DaemonSet:
+			defaulted, err = DefaultDaemonSet(v, any(created).(*appsv1.DaemonSet))
+
+		case *batchv1.CronJob:
+			defaulted, err = DefaultCronJob(v, any(created).(*batchv1.CronJob))
+		}
+
+		return defaulted.(T), err
+	}
 }
 
 func waitUntilUpdateIsInCacheConditionFunc(
