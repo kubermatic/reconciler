@@ -442,7 +442,7 @@ func TestDefaultDeployment(t *testing.T) {
 		testResourceName = "test"
 	)
 
-	creators := []NamedDeploymentReconcilerFactory{
+	reconcilers := []NamedDeploymentReconcilerFactory{
 		func() (string, DeploymentReconciler) {
 			return testResourceName, func(d *appsv1.Deployment) (*appsv1.Deployment, error) {
 				return d, nil
@@ -502,7 +502,7 @@ func TestDefaultDeployment(t *testing.T) {
 	}
 
 	client := controllerruntimefake.NewClientBuilder().WithObjects(existingObject).Build()
-	if err := ReconcileDeployments(context.Background(), creators, testNamespace, client); err != nil {
+	if err := ReconcileDeployments(context.Background(), reconcilers, testNamespace, client); err != nil {
 		t.Errorf("EnsureObject returned an error while none was expected: %v", err)
 	}
 
@@ -528,7 +528,7 @@ func TestDefaultStatefulSet(t *testing.T) {
 		testResourceName = "test"
 	)
 
-	creators := []NamedStatefulSetReconcilerFactory{
+	reconcilers := []NamedStatefulSetReconcilerFactory{
 		func() (string, StatefulSetReconciler) {
 			return testResourceName, func(d *appsv1.StatefulSet) (*appsv1.StatefulSet, error) {
 				return d, nil
@@ -575,7 +575,7 @@ func TestDefaultStatefulSet(t *testing.T) {
 	}
 
 	client := controllerruntimefake.NewClientBuilder().WithObjects(existingObject).Build()
-	if err := ReconcileStatefulSets(context.Background(), creators, testNamespace, client); err != nil {
+	if err := ReconcileStatefulSets(context.Background(), reconcilers, testNamespace, client); err != nil {
 		t.Errorf("EnsureObject returned an error while none was expected: %v", err)
 	}
 
@@ -601,7 +601,7 @@ func TestDefaultDaemonSet(t *testing.T) {
 		testResourceName = "test"
 	)
 
-	creators := []NamedDaemonSetReconcilerFactory{
+	reconcilers := []NamedDaemonSetReconcilerFactory{
 		func() (string, DaemonSetReconciler) {
 			return testResourceName, func(d *appsv1.DaemonSet) (*appsv1.DaemonSet, error) {
 				return d, nil
@@ -648,7 +648,7 @@ func TestDefaultDaemonSet(t *testing.T) {
 	}
 
 	client := controllerruntimefake.NewClientBuilder().WithObjects(existingObject).Build()
-	if err := ReconcileDaemonSets(context.Background(), creators, testNamespace, client); err != nil {
+	if err := ReconcileDaemonSets(context.Background(), reconcilers, testNamespace, client); err != nil {
 		t.Errorf("EnsureObject returned an error while none was expected: %v", err)
 	}
 
@@ -674,7 +674,7 @@ func TestDefaultCronJob(t *testing.T) {
 		testResourceName = "test"
 	)
 
-	creators := []NamedCronJobReconcilerFactory{
+	reconcilers := []NamedCronJobReconcilerFactory{
 		func() (string, CronJobReconciler) {
 			return testResourceName, func(d *batchv1.CronJob) (*batchv1.CronJob, error) {
 				return d, nil
@@ -729,7 +729,7 @@ func TestDefaultCronJob(t *testing.T) {
 	}
 
 	client := controllerruntimefake.NewClientBuilder().WithObjects(existingObject).Build()
-	if err := ReconcileCronJobs(context.Background(), creators, testNamespace, client); err != nil {
+	if err := ReconcileCronJobs(context.Background(), reconcilers, testNamespace, client); err != nil {
 		t.Errorf("EnsureObject returned an error while none was expected: %v", err)
 	}
 
@@ -841,13 +841,13 @@ func TestDeploymentStrategyDefaulting(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			creator := func(_ *appsv1.Deployment) (*appsv1.Deployment, error) {
+			reconciler := func(_ *appsv1.Deployment) (*appsv1.Deployment, error) {
 				return tc.in, nil
 			}
-			creator = DefaultDeployment(creator)
-			deployment, err := creator(&appsv1.Deployment{})
+			reconciler = DefaultDeployment(reconciler)
+			deployment, err := reconciler(&appsv1.Deployment{})
 			if err != nil {
-				t.Fatalf("error when calling creator: %v", err)
+				t.Fatalf("error when calling reconciler: %v", err)
 			}
 
 			if err := tc.verify(deployment); err != nil {
@@ -910,7 +910,7 @@ func TestImagePullSecretsWrapper(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := ImagePullSecretsWrapper(tt.secretNames...)
-			create := got(identityCreator)
+			create := got(identityReconciler)
 			_, err := create(tt.inputObj)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("wanted error = %v, but got %v", tt.wantErr, err)
@@ -932,9 +932,9 @@ func TestImagePullSecretsWrapper(t *testing.T) {
 	}
 }
 
-// identityCreator is an ObjectModifier that returns the input object
+// identityReconciler is an ObjectModifier that returns the input object
 // untouched.
 // TODO May be useful to move this in a test package?
-func identityCreator(obj ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
+func identityReconciler(obj ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 	return obj, nil
 }

@@ -39,7 +39,7 @@ func TestEnsureObjectByAnnotation(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		creator        ObjectReconciler
+		reconciler     ObjectReconciler
 		existingObject ctrlruntimeclient.Object
 		expectedObject ctrlruntimeclient.Object
 		recreate       bool
@@ -60,7 +60,7 @@ func TestEnsureObjectByAnnotation(t *testing.T) {
 					"foo": "bar",
 				},
 			},
-			creator: func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
+			reconciler: func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 				var sa *corev1.ConfigMap
 				if existing == nil {
 					sa = &corev1.ConfigMap{}
@@ -86,7 +86,7 @@ func TestEnsureObjectByAnnotation(t *testing.T) {
 					"foo": "hopefully-gets-overwritten",
 				},
 			},
-			creator: func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
+			reconciler: func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 				var sa *corev1.ConfigMap
 				if existing == nil {
 					sa = &corev1.ConfigMap{}
@@ -129,7 +129,7 @@ func TestEnsureObjectByAnnotation(t *testing.T) {
 					"foo": "hopefully-does-not-get-overwritten",
 				},
 			},
-			creator: func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
+			reconciler: func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 				var sa *corev1.ConfigMap
 				if existing == nil {
 					sa = &corev1.ConfigMap{}
@@ -171,7 +171,7 @@ func TestEnsureObjectByAnnotation(t *testing.T) {
 					"foo": "bar",
 				},
 			},
-			creator: func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
+			reconciler: func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 				var sa *corev1.ConfigMap
 				if existing == nil {
 					sa = &corev1.ConfigMap{}
@@ -213,7 +213,7 @@ func TestEnsureObjectByAnnotation(t *testing.T) {
 					"foo": "bar",
 				},
 			},
-			creator: func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
+			reconciler: func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 				var sa *corev1.ConfigMap
 				if existing == nil {
 					sa = &corev1.ConfigMap{}
@@ -258,7 +258,7 @@ func TestEnsureObjectByAnnotation(t *testing.T) {
 					"foo": "hopefully-does-not-get-overwritten",
 				},
 			},
-			creator: func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
+			reconciler: func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
 				var sa *corev1.ConfigMap
 				if existing == nil {
 					sa = &corev1.ConfigMap{}
@@ -303,7 +303,7 @@ func TestEnsureObjectByAnnotation(t *testing.T) {
 			client := clientBuilder.Build()
 			ctx := context.Background()
 			name := types.NamespacedName{Namespace: testNamespace, Name: testResourceName}
-			if err := EnsureNamedObject(ctx, name, test.creator, client, &corev1.ConfigMap{}, test.recreate); err != nil {
+			if err := EnsureNamedObject(ctx, name, test.reconciler, client, &corev1.ConfigMap{}, test.recreate); err != nil {
 				t.Errorf("EnsureObject returned an error while none was expected: %v", err)
 			}
 

@@ -38,7 +38,7 @@ import (
 // ObjectReconciler defines an interface to create/update a ctrlruntimeclient.Object.
 type ObjectReconciler = func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error)
 
-// ObjectModifier is a wrapper function which modifies the object which gets returned by the passed in ObjectCreator.
+// ObjectModifier is a wrapper function which modifies the object which gets returned by the passed in ObjectReconciler.
 type ObjectModifier func(create ObjectReconciler) ObjectReconciler
 
 func CreateWithNamespace(reconciler ObjectReconciler, namespace string) ObjectReconciler {
@@ -75,10 +75,10 @@ func objectLogger(obj ctrlruntimeclient.Object) *zap.SugaredLogger {
 }
 
 // EnsureNamedObject will generate the Object with the passed create function & create or update it in Kubernetes if necessary.
-func EnsureNamedObject(ctx context.Context, namespacedName types.NamespacedName, rawcreate ObjectReconciler, client ctrlruntimeclient.Client, emptyObject ctrlruntimeclient.Object, requiresRecreate bool) error {
-	// A wrapper to ensure we always set the Namespace and Name. This is useful as we call create twice
-	create := CreateWithNamespace(rawcreate, namespacedName.Namespace)
-	create = CreateWithName(create, namespacedName.Name)
+func EnsureNamedObject(ctx context.Context, namespacedName types.NamespacedName, rawReconciler ObjectReconciler, client ctrlruntimeclient.Client, emptyObject ctrlruntimeclient.Object, requiresRecreate bool) error {
+	// A wrapper to ensure we always set the Namespace and Name. This is useful as we call reconciler twice
+	reconciler := CreateWithNamespace(rawReconciler, namespacedName.Namespace)
+	reconciler = CreateWithName(reconciler, namespacedName.Name)
 
 	exists := true
 	existingObject := emptyObject.DeepCopyObject().(ctrlruntimeclient.Object)
@@ -99,7 +99,7 @@ func EnsureNamedObject(ctx context.Context, namespacedName types.NamespacedName,
 
 	// Object does not exist in lister -> Create the Object
 	if !exists {
-		obj, err := create(emptyObject)
+		obj, err := reconciler(emptyObject)
 		if err != nil {
 			return fmt.Errorf("failed to generate object: %w", err)
 		}
@@ -118,8 +118,8 @@ func EnsureNamedObject(ctx context.Context, namespacedName types.NamespacedName,
 	}
 
 	// Create a copy to make sure we don't compare the object onto itself
-	// in case the creator returns the same pointer it got passed in
-	obj, err := create(existingObject.DeepCopyObject().(ctrlruntimeclient.Object))
+	// in case the reconciler returns the same pointer it got passed in
+	obj, err := reconciler(existingObject.DeepCopyObject().(ctrlruntimeclient.Object))
 	if err != nil {
 		return fmt.Errorf("failed to build Object(%T) '%s': %w", existingObject, namespacedName.String(), err)
 	}

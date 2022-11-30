@@ -55,7 +55,7 @@ func DefaultContainer(c *corev1.Container, procMountType *corev1.ProcMountType) 
 // The following KKP-specific defaults are applied:
 // - SecurityContext.SeccompProfile is set to be of type `RuntimeDefault` to enable seccomp isolation if not set.
 func DefaultPodSpec(oldPodSpec, newPodSpec corev1.PodSpec) (corev1.PodSpec, error) {
-	// make sure to keep the old procmount types in case a creator overrides the entire PodSpec
+	// make sure to keep the old procmount types in case a reconciler overrides the entire PodSpec
 	initContainerProcMountType := map[string]*corev1.ProcMountType{}
 	containerProcMountType := map[string]*corev1.ProcMountType{}
 	for _, container := range oldPodSpec.InitContainers {

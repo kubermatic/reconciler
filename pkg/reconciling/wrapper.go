@@ -26,7 +26,7 @@ import (
 	ctrlruntimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// OwnerRefWrapper is responsible for wrapping a ObjectCreator function, solely to set the OwnerReference to the cluster object.
+// OwnerRefWrapper is responsible for wrapping a ObjectReconciler function, solely to set the OwnerReference to the cluster object.
 func OwnerRefWrapper(ref metav1.OwnerReference) ObjectModifier {
 	return func(create ObjectReconciler) ObjectReconciler {
 		return func(existing ctrlruntimeclient.Object) (ctrlruntimeclient.Object, error) {
@@ -41,7 +41,7 @@ func OwnerRefWrapper(ref metav1.OwnerReference) ObjectModifier {
 	}
 }
 
-// ImagePullSecretsWrapper is generating a new ObjectModifier that wraps an ObjectCreator
+// ImagePullSecretsWrapper is generating a new ObjectModifier that wraps an ObjectReconciler
 // and takes care of adding the secret names provided to the ImagePullSecrets.
 //
 // TODO At the moment only Deployments are supported, but

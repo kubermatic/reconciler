@@ -28,7 +28,7 @@ import (
 // UnstructuredReconciler defines an interface to create/update Unstructureds.
 type UnstructuredReconciler = func(existing *unstructured.Unstructured) (*unstructured.Unstructured, error)
 
-// NamedUnstructuredReconcilerFactory returns the name of the resource and the corresponding creator function.
+// NamedUnstructuredReconcilerFactory returns the name of the resource and the corresponding reconciler function.
 type NamedUnstructuredReconcilerFactory = func() (name, kind, apiVersion string, create UnstructuredReconciler)
 
 // UnstructuredObjectWrapper adds a wrapper so the UnstructuredReconciler matches ObjectReconciler.
