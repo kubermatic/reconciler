@@ -107,8 +107,8 @@ func EnsureNamedObject(ctx context.Context, namespacedName types.NamespacedName,
 			return fmt.Errorf("failed to create %T '%s': %w", obj, namespacedName.String(), err)
 		}
 		// Wait until the object exists in the cache
-		createdObjectIsInCache := WaitUntilObjectExistsInCacheConditionFunc(ctx, client, objectLogger(obj), namespacedName, obj)
-		err = wait.PollImmediate(10*time.Millisecond, 10*time.Second, createdObjectIsInCache)
+		createdObjectIsInCache := WaitUntilObjectExistsInCacheConditionFunc(client, objectLogger(obj), namespacedName, obj)
+		err = wait.PollUntilContextTimeout(ctx, 10*time.Millisecond, 10*time.Second, true, createdObjectIsInCache)
 		if err != nil {
 			return fmt.Errorf("failed waiting for the cache to contain our newly created object: %w", err)
 		}
@@ -156,8 +156,8 @@ func EnsureNamedObject(ctx context.Context, namespacedName types.NamespacedName,
 	}
 
 	// Wait until the object we retrieve via "client.Get" has a different ResourceVersion than the old object
-	updatedObjectIsInCache := waitUntilUpdateIsInCacheConditionFunc(ctx, client, objectLogger(obj), namespacedName, existingObject)
-	err = wait.PollImmediate(10*time.Millisecond, 10*time.Second, updatedObjectIsInCache)
+	updatedObjectIsInCache := waitUntilUpdateIsInCacheConditionFunc(client, objectLogger(obj), namespacedName, existingObject)
+	err = wait.PollUntilContextTimeout(ctx, 10*time.Millisecond, 10*time.Second, true, updatedObjectIsInCache)
 	if err != nil {
 		return fmt.Errorf("failed waiting for the cache to contain our latest changes: %w", err)
 	}
@@ -168,13 +168,12 @@ func EnsureNamedObject(ctx context.Context, namespacedName types.NamespacedName,
 }
 
 func waitUntilUpdateIsInCacheConditionFunc(
-	ctx context.Context,
 	client ctrlruntimeclient.Client,
 	log *zap.SugaredLogger,
 	namespacedName types.NamespacedName,
 	oldObj ctrlruntimeclient.Object,
-) wait.ConditionFunc {
-	return func() (bool, error) {
+) wait.ConditionWithContextFunc {
+	return func(ctx context.Context) (bool, error) {
 		// Create a copy to have something which we can pass into the client
 		currentObj := oldObj.DeepCopyObject().(ctrlruntimeclient.Object)
 
@@ -195,13 +194,12 @@ func waitUntilUpdateIsInCacheConditionFunc(
 }
 
 func WaitUntilObjectExistsInCacheConditionFunc(
-	ctx context.Context,
 	client ctrlruntimeclient.Client,
 	log *zap.SugaredLogger,
 	namespacedName types.NamespacedName,
 	obj ctrlruntimeclient.Object,
-) wait.ConditionFunc {
-	return func() (bool, error) {
+) wait.ConditionWithContextFunc {
+	return func(ctx context.Context) (bool, error) {
 		newObj := obj.DeepCopyObject().(ctrlruntimeclient.Object)
 		if err := client.Get(ctx, namespacedName, newObj); err != nil {
 			if apierrors.IsNotFound(err) {
