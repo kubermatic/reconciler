@@ -21,7 +21,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	utilpointer "k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 // DefaultContainer defaults all Container attributes to the same values as they would get from the Kubernetes API.
@@ -79,10 +79,10 @@ func DefaultPodSpec(oldPodSpec, newPodSpec corev1.PodSpec) (corev1.PodSpec, erro
 
 	for idx, vol := range newPodSpec.Volumes {
 		if vol.VolumeSource.Secret != nil && vol.VolumeSource.Secret.DefaultMode == nil {
-			newPodSpec.Volumes[idx].Secret.DefaultMode = utilpointer.Int32(corev1.SecretVolumeSourceDefaultMode)
+			newPodSpec.Volumes[idx].Secret.DefaultMode = ptr.To[int32](corev1.SecretVolumeSourceDefaultMode)
 		}
 		if vol.VolumeSource.ConfigMap != nil && vol.VolumeSource.ConfigMap.DefaultMode == nil {
-			newPodSpec.Volumes[idx].ConfigMap.DefaultMode = utilpointer.Int32(corev1.ConfigMapVolumeSourceDefaultMode)
+			newPodSpec.Volumes[idx].ConfigMap.DefaultMode = ptr.To[int32](corev1.ConfigMapVolumeSourceDefaultMode)
 		}
 	}
 

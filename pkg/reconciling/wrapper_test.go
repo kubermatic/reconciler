@@ -30,7 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrlruntimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	controllerruntimefake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -308,7 +308,7 @@ func TestDefaultPodSpec(t *testing.T) {
 				Volumes: []corev1.Volume{{
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
-							DefaultMode: pointer.Int32(0644),
+							DefaultMode: ptr.To[int32](0644),
 						},
 					},
 				}},
@@ -320,7 +320,7 @@ func TestDefaultPodSpec(t *testing.T) {
 				Volumes: []corev1.Volume{{
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
-							DefaultMode: pointer.Int32(0600),
+							DefaultMode: ptr.To[int32](0600),
 						},
 					},
 				},
@@ -334,7 +334,7 @@ func TestDefaultPodSpec(t *testing.T) {
 				Volumes: []corev1.Volume{{
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
-							DefaultMode: pointer.Int32(0600),
+							DefaultMode: ptr.To[int32](0600),
 						},
 					},
 				}},
@@ -358,7 +358,7 @@ func TestDefaultPodSpec(t *testing.T) {
 				Volumes: []corev1.Volume{{
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
-							DefaultMode: pointer.Int32(0644),
+							DefaultMode: ptr.To[int32](0644),
 						},
 					},
 				}},
@@ -370,7 +370,7 @@ func TestDefaultPodSpec(t *testing.T) {
 				Volumes: []corev1.Volume{{
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
-							DefaultMode: pointer.Int32(0600),
+							DefaultMode: ptr.To[int32](0600),
 						},
 					},
 				},
@@ -384,7 +384,7 @@ func TestDefaultPodSpec(t *testing.T) {
 				Volumes: []corev1.Volume{{
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
-							DefaultMode: pointer.Int32(0600),
+							DefaultMode: ptr.To[int32](0600),
 						},
 					},
 				}},
@@ -394,9 +394,9 @@ func TestDefaultPodSpec(t *testing.T) {
 			name: "Partial security context gets seccomp profile added",
 			newObject: corev1.PodSpec{
 				SecurityContext: &corev1.PodSecurityContext{
-					RunAsUser:    pointer.Int64(1000),
-					RunAsGroup:   pointer.Int64(1000),
-					RunAsNonRoot: pointer.Bool(true),
+					RunAsUser:    ptr.To[int64](1000),
+					RunAsGroup:   ptr.To[int64](1000),
+					RunAsNonRoot: ptr.To(true),
 				},
 				Containers: []corev1.Container{
 					{},
@@ -404,9 +404,9 @@ func TestDefaultPodSpec(t *testing.T) {
 			},
 			expectedObject: corev1.PodSpec{
 				SecurityContext: &corev1.PodSecurityContext{
-					RunAsUser:    pointer.Int64(1000),
-					RunAsGroup:   pointer.Int64(1000),
-					RunAsNonRoot: pointer.Bool(true),
+					RunAsUser:    ptr.To[int64](1000),
+					RunAsGroup:   ptr.To[int64](1000),
+					RunAsNonRoot: ptr.To(true),
 					SeccompProfile: &corev1.SeccompProfile{
 						Type: corev1.SeccompProfileTypeRuntimeDefault,
 					},
